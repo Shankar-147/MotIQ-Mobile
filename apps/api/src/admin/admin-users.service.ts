@@ -1,44 +1,37 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Payment, User, UserStatus } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
-export type UserStatus = 'active' | 'suspended';
+export type AdminPaymentView = Payment & { user: { phoneNumber: string } };
 
-export interface AdminUserView {
-  id: string;
-  phoneNumber: string;
-  status: UserStatus;
-  createdAt: number;
-}
-
-/**
- * Seeded with a couple of fake users for now so the admin console has
- * something to list. Replace with a real query against the users table
- * once that model exists.
- */
 @Injectable()
 export class AdminUsersService {
-  private readonly users = new Map<string, AdminUserView>([
-    ['u1', { id: 'u1', phoneNumber: '+919999999999', status: 'active', createdAt: Date.now() }],
-    ['u2', { id: 'u2', phoneNumber: '+918888888888', status: 'active', createdAt: Date.now() }],
-  ]);
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll(): AdminUserView[] {
-    return [...this.users.values()];
+  findAll(): Promise<User[]> {
+    return this.prisma.user.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
-  findOne(id: string): AdminUserView {
-    const user = this.users.get(id);
+  async findOne(id: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException(`User ${id} not found`);
     }
     return user;
   }
 
-  updateStatus(id: string, status: UserStatus): AdminUserView {
-    const user = this.findOne(id);
-    user.status = status;
-    return user;
+  async updateStatus(actingAdminId: string, id: string, status: UserStatus): Promise<User> {
+    if (id === actingAdminId) {
+      throw new BadRequestException("You can't change your own status");
+    }
+    await this.findOne(id);
+    return this.prisma.user.update({ where: { id }, data: { status } });
   }
 
-  // TODO: search/filter by phone number once we have more than a
-  // handful of seed users to page through.
+  findAllPayments(): Promise<AdminPaymentView[]> {
+    return this.prisma.payment.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { phoneNumber: true } } },
+    });
+  }
 }

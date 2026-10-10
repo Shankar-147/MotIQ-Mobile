@@ -1,26 +1,37 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { AdminUsersService } from './admin-users.service';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthUser } from '../auth/auth-user';
 
-// TODO: guard this whole controller behind an admin-role check once
-// roles exist on the JWT payload — right now anyone with a valid
-// session token can hit these routes.
-@Controller('admin/users')
+@Controller('admin')
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
-  @Get()
+  @Get('users')
   findAll() {
     return this.adminUsersService.findAll();
   }
 
-  @Get(':id')
+  @Get('users/:id')
   findOne(@Param('id') id: string) {
     return this.adminUsersService.findOne(id);
   }
 
-  @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body() dto: UpdateUserStatusDto) {
-    return this.adminUsersService.updateStatus(id, dto.status);
+  @Patch('users/:id/status')
+  updateStatus(
+    @CurrentUser() admin: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserStatusDto,
+  ) {
+    return this.adminUsersService.updateStatus(admin.id, id, dto.status);
+  }
+
+  @Get('payments')
+  findAllPayments() {
+    return this.adminUsersService.findAllPayments();
   }
 }
