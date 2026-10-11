@@ -10,12 +10,12 @@ Don't commit directly to `main`.
 
 | # | Module | Branch prefix | Owner | Status |
 |---|--------|---------------|-------|--------|
-| 1 | **Auth** — OTP request/verify, JWT issuance, session handling | `auth/` | Shankararam | 🚧 in progress |
+| 1 | **Auth** — OTP request/verify, JWT issuance, session handling | `auth/` | Shankararam | ✅ working (SMS delivery and refresh tokens still to do) |
 | 2 | **Service requests** — request creation, status state machine, request history | `requests/` | _unassigned_ | ⬜ not started |
 | 3 | **Matching & providers** — provider profiles, verification status, nearest-provider matching | `matching/` | _unassigned_ | ⬜ not started |
-| 4 | **Payments** — commission calculation, payment split, payout tracking | `payments/` | _unassigned_ | ⬜ not started |
+| 4 | **Payments** — payment lifecycle: create, confirm, refund | `payments/` | Viswa | ✅ working (payment gateway still to do) |
 | 5 | **Mobile app** — Customer/Provider screens, navigation, UI components | `mobile/` | _unassigned_ | ⬜ not started |
-| 6 | **Admin console** — internal ops/support web app | `admin/` | _unassigned_ | ⬜ not started |
+| 6 | **Admin console** — users, payments, audit log, dashboard (API + web screens) | `admin/` | SelvaPriya | ✅ working |
 
 ## How to claim a module
 
