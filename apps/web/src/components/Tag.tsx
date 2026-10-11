@@ -1,4 +1,4 @@
-// Small coloured label for a status, e.g. "succeeded" or "suspended".
+// Small coloured label for a status, e.g. "succeeded" or "in progress".
 export default function Tag({ value }: { value: string }) {
-  return <span className={`tag tag-${value}`}>{value}</span>;
+  return <span className={`tag tag-${value}`}>{value.replace(/_/g, ' ')}</span>;
 }

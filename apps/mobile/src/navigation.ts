@@ -3,8 +3,10 @@ export type AuthStackParams = {
   Otp: { phoneNumber: string };
 };
 
-export type PaymentsStackParams = {
-  PaymentsList: undefined;
-  NewPayment: undefined;
+// Customer screens that sit above the tabs.
+export type CustomerStackParams = {
+  CustomerTabs: undefined;
+  NewRequest: undefined;
+  RequestDetail: { id: string };
   PaymentDetail: { id: string };
 };

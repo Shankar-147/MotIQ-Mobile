@@ -27,8 +27,10 @@ export default function Layout({ children }: { children: ReactNode }) {
               <NavLink to="/admin" end>
                 Dashboard
               </NavLink>
+              <NavLink to="/admin/providers">Providers</NavLink>
+              <NavLink to="/admin/requests">Requests</NavLink>
               <NavLink to="/admin/users">Users</NavLink>
-              <NavLink to="/admin/payments">All payments</NavLink>
+              <NavLink to="/admin/payments">Payments</NavLink>
               <NavLink to="/admin/audit">Audit log</NavLink>
             </>
           )}

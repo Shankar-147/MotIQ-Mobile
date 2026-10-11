@@ -5,6 +5,8 @@ import Layout from './components/Layout';
 import AdminAudit from './pages/AdminAudit';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPayments from './pages/AdminPayments';
+import AdminProviders from './pages/AdminProviders';
+import AdminRequests from './pages/AdminRequests';
 import AdminUsers from './pages/AdminUsers';
 import Login from './pages/Login';
 import Payments from './pages/Payments';
@@ -30,6 +32,8 @@ export default function App() {
       <Route path="/profile" element={<Protected><Profile /></Protected>} />
       <Route path="/admin" element={<Protected admin><AdminDashboard /></Protected>} />
       <Route path="/admin/users" element={<Protected admin><AdminUsers /></Protected>} />
+      <Route path="/admin/providers" element={<Protected admin><AdminProviders /></Protected>} />
+      <Route path="/admin/requests" element={<Protected admin><AdminRequests /></Protected>} />
       <Route path="/admin/payments" element={<Protected admin><AdminPayments /></Protected>} />
       <Route path="/admin/audit" element={<Protected admin><AdminAudit /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />

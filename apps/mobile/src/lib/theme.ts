@@ -12,9 +12,27 @@ export const colors = {
   dangerTint: '#fdf0ef',
 };
 
+const good = { bg: '#dff1e6', fg: '#17603a' };
+const waiting = { bg: '#fbefd2', fg: '#7a5a06' };
+const moving = { bg: '#dcebf0', fg: '#164a57' };
+const bad = { bg: '#f8e1df', fg: '#8e1d17' };
+const neutral = { bg: '#e6eaee', fg: '#44505c' };
+
+// Badge colours for every status the app shows.
 export const statusColors: Record<string, { bg: string; fg: string }> = {
-  succeeded: { bg: '#dff1e6', fg: '#17603a' },
-  pending: { bg: '#fbefd2', fg: '#7a5a06' },
-  failed: { bg: '#f8e1df', fg: '#8e1d17' },
-  refunded: { bg: '#e6eaee', fg: '#44505c' },
+  succeeded: good,
+  completed: good,
+  approved: good,
+  pending: waiting,
+  requested: waiting,
+  assigned: waiting,
+  no_provider: waiting,
+  accepted: moving,
+  en_route: moving,
+  arrived: moving,
+  in_progress: moving,
+  failed: bad,
+  cancelled: bad,
+  rejected: bad,
+  refunded: neutral,
 };

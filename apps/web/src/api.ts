@@ -1,8 +1,19 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api/v1';
 const TOKEN_KEY = 'motiq_token';
 
-export type Role = 'user' | 'admin';
+export type Role = 'user' | 'provider' | 'admin';
 export type UserStatus = 'active' | 'suspended';
+export type Verification = 'pending' | 'approved' | 'rejected';
+export type RequestStatus =
+  | 'requested'
+  | 'assigned'
+  | 'accepted'
+  | 'en_route'
+  | 'arrived'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled'
+  | 'no_provider';
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
 
 export interface Me {
@@ -51,12 +62,48 @@ export interface Page<T> {
   pageSize: number;
 }
 
+export interface ProviderRow {
+  id: string;
+  businessName: string;
+  verification: Verification;
+  online: boolean;
+  areaName: string | null;
+  createdAt: string;
+  user: { phoneNumber: string; name: string | null };
+  _count: { documents: number };
+}
+
+export interface ProviderDetail {
+  id: string;
+  businessName: string;
+  verification: Verification;
+  reviewNote: string | null;
+  online: boolean;
+  areaName: string | null;
+  user: { phoneNumber: string; name: string | null };
+  documents: { id: string; type: string; fileUrl: string; createdAt: string }[];
+}
+
+export interface RequestRow {
+  id: string;
+  issueType: string;
+  status: RequestStatus;
+  areaName: string | null;
+  distanceKm: number | null;
+  fareTotal: number | null;
+  baseFare: number;
+  createdAt: string;
+  customer: { name: string | null; phoneNumber: string };
+  provider: { businessName: string } | null;
+}
+
 export interface Stats {
   users: Record<UserStatus, number>;
   payments: {
     counts: Record<PaymentStatus, number>;
-    collected: { currency: string; amount: number }[];
+    collected: { currency: string; amount: number; commission: number }[];
   };
+  requests: Record<RequestStatus, number>;
 }
 
 export class ApiError extends Error {
@@ -137,4 +184,12 @@ export const api = {
     request<Page<AdminPayment>>(`/admin/payments${query({ ...params, pageSize: 10 })}`),
   refund: (id: string) => request<Payment>(`/admin/payments/${id}/refund`, post()),
   audit: (page: number) => request<Page<AuditEntry>>(`/admin/audit${query({ page, pageSize: 15 })}`),
+
+  providers: (params: { verification?: string; page?: number }) =>
+    request<Page<ProviderRow>>(`/admin/providers${query({ ...params, pageSize: 10 })}`),
+  provider: (id: string) => request<ProviderDetail>(`/admin/providers/${id}`),
+  reviewProvider: (id: string, decision: 'approved' | 'rejected', note?: string) =>
+    request<ProviderDetail>(`/admin/providers/${id}/review`, post({ decision, note })),
+  requests: (params: { status?: string; page?: number }) =>
+    request<Page<RequestRow>>(`/admin/requests${query({ ...params, pageSize: 10 })}`),
 };

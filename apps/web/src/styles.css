@@ -302,20 +302,35 @@ tbody tr:last-child td {
 }
 
 .tag-active,
-.tag-succeeded {
+.tag-succeeded,
+.tag-approved,
+.tag-completed {
   background: #dff1e6;
   color: #17603a;
 }
 
 .tag-suspended,
-.tag-failed {
+.tag-failed,
+.tag-rejected,
+.tag-cancelled {
   background: #f8e1df;
   color: #8e1d17;
 }
 
-.tag-pending {
+.tag-pending,
+.tag-requested,
+.tag-assigned,
+.tag-no_provider {
   background: #fbefd2;
   color: #7a5a06;
+}
+
+.tag-accepted,
+.tag-en_route,
+.tag-arrived,
+.tag-in_progress {
+  background: #dcebf0;
+  color: #164a57;
 }
 
 .pager {
