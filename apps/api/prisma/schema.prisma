@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
+model User {
+  id          String     @id @default(uuid())
+  phoneNumber String     @unique
+  name        String?
+  role        Role       @default(user)
+  status      UserStatus @default(active)
+  suspendedAt DateTime?
+  createdAt   DateTime   @default(now())
+  payments    Payment[]
+}
+
+// One row per phone number: the pending one-time code, stored as a hash.
+model OtpChallenge {
+  phoneNumber String   @id
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  issuedAt    DateTime
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  amount    Int
+  currency  String
+  status    PaymentStatus @default(pending)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+// Who did what in the admin console.
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String
+  action    String
+  targetId  String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
