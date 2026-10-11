@@ -7,8 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------------------------------------------------------------- people
+
 enum Role {
   user
+  provider
   admin
 }
 
@@ -17,22 +20,17 @@ enum UserStatus {
   suspended
 }
 
-enum PaymentStatus {
-  pending
-  succeeded
-  failed
-  refunded
-}
-
 model User {
-  id          String     @id @default(uuid())
-  phoneNumber String     @unique
-  name        String?
-  role        Role       @default(user)
-  status      UserStatus @default(active)
-  suspendedAt DateTime?
-  createdAt   DateTime   @default(now())
-  payments    Payment[]
+  id              String           @id @default(uuid())
+  phoneNumber     String           @unique
+  name            String?
+  role            Role             @default(user)
+  status          UserStatus       @default(active)
+  suspendedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  payments        Payment[]
+  requests        ServiceRequest[]
+  providerProfile ProviderProfile?
 }
 
 // One row per phone number: the pending one-time code, stored as a hash.
@@ -44,15 +42,147 @@ model OtpChallenge {
   issuedAt    DateTime
 }
 
+// ------------------------------------------------------------- providers
+
+enum ProviderVerification {
+  pending
+  approved
+  rejected
+}
+
+enum DocumentType {
+  driving_license
+  vehicle_registration
+  id_proof
+}
+
+// Extra details for a user whose role is "provider".
+model ProviderProfile {
+  id           String               @id @default(uuid())
+  userId       String               @unique
+  user         User                 @relation(fields: [userId], references: [id])
+  businessName String
+  verification ProviderVerification @default(pending)
+  reviewNote   String?
+  reviewedAt   DateTime?
+  online       Boolean              @default(false)
+  latitude     Float?
+  longitude    Float?
+  areaName     String?
+  createdAt    DateTime             @default(now())
+  documents    ProviderDocument[]
+  requests     ServiceRequest[]
+  offers       RequestOffer[]
+}
+
+model ProviderDocument {
+  id         String          @id @default(uuid())
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id])
+  type       DocumentType
+  fileUrl    String
+  createdAt  DateTime        @default(now())
+
+  @@index([providerId])
+}
+
+// -------------------------------------------------------------- requests
+
+enum IssueType {
+  flat_tyre
+  battery
+  fuel
+  towing
+  engine
+  other
+}
+
+enum RequestStatus {
+  requested
+  assigned
+  accepted
+  en_route
+  arrived
+  in_progress
+  completed
+  cancelled
+  no_provider
+}
+
+enum OfferStatus {
+  offered
+  accepted
+  rejected
+  withdrawn
+}
+
+// A driver asking for help.
+model ServiceRequest {
+  id          String           @id @default(uuid())
+  customerId  String
+  customer    User             @relation(fields: [customerId], references: [id])
+  providerId  String?
+  provider    ProviderProfile? @relation(fields: [providerId], references: [id])
+  issueType   IssueType
+  description String?
+  vehicle     String?
+  latitude    Float
+  longitude   Float
+  areaName    String?
+  status      RequestStatus    @default(requested)
+  baseFare    Int
+  distanceKm  Float?
+  fareTotal   Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  acceptedAt  DateTime?
+  completedAt DateTime?
+  offers      RequestOffer[]
+  payment     Payment?
+
+  @@index([customerId])
+  @@index([providerId])
+  @@index([status])
+}
+
+// Every time matching offers a request to a provider, one row is written.
+// This is how a rejected provider is skipped on the next try.
+model RequestOffer {
+  id          String          @id @default(uuid())
+  requestId   String
+  request     ServiceRequest  @relation(fields: [requestId], references: [id])
+  providerId  String
+  provider    ProviderProfile @relation(fields: [providerId], references: [id])
+  status      OfferStatus     @default(offered)
+  createdAt   DateTime        @default(now())
+  respondedAt DateTime?
+
+  @@index([requestId])
+  @@index([providerId, status])
+}
+
+// -------------------------------------------------------------- payments
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
 model Payment {
-  id        String        @id @default(uuid())
-  userId    String
-  user      User          @relation(fields: [userId], references: [id])
-  amount    Int
-  currency  String
-  status    PaymentStatus @default(pending)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  requestId        String?         @unique
+  request          ServiceRequest? @relation(fields: [requestId], references: [id])
+  amount           Int
+  commissionAmount Int             @default(0)
+  providerAmount   Int             @default(0)
+  currency         String
+  status           PaymentStatus   @default(pending)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([userId])
 }
