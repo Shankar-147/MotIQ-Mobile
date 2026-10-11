@@ -22,8 +22,9 @@ current status of each module.
 - **Payments** — create, confirm and refund payments for the logged in user.
 - **Admin** — search and suspend users, list and refund payments, audit log, dashboard.
 - **Web app** — sign in, my payments, profile, and the admin screens.
+- **Mobile app** — sign in and payments on a phone (Expo).
 
-Not built yet: service requests, provider matching and the mobile app.
+Not built yet: service requests and provider matching.
 
 ## Running it
 
@@ -47,6 +48,14 @@ npm run dev                   # http://localhost:5173
 Sign in as the demo admin with `99999 00000`. There is no SMS provider yet,
 so the one-time code is printed in the API terminal.
 
+Mobile app (third terminal, optional):
+
+```
+cd apps/mobile
+npm install
+npx expo start --web --port 8081   # or press a for an Android emulator
+```
+
 Tests: `cd apps/api && npx jest`.
 
 ## Contributing
@@ -58,4 +67,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the git workflow, and
 
 - **API:** NestJS, TypeScript, Prisma, PostgreSQL, JWT, Jest
 - **Web app:** React, Vite, TypeScript
-- **Planned:** React Native (Expo) mobile app
+- **Mobile app:** React Native (Expo), TypeScript

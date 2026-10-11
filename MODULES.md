@@ -14,7 +14,7 @@ Don't commit directly to `main`.
 | 2 | **Service requests** — request creation, status state machine, request history | `requests/` | _unassigned_ | ⬜ not started |
 | 3 | **Matching & providers** — provider profiles, verification status, nearest-provider matching | `matching/` | _unassigned_ | ⬜ not started |
 | 4 | **Payments** — payment lifecycle: create, confirm, refund | `payments/` | Viswa | ✅ working (payment gateway still to do) |
-| 5 | **Mobile app** — Customer/Provider screens, navigation, UI components | `mobile/` | _unassigned_ | ⬜ not started |
+| 5 | **Mobile app** — Customer/Provider screens, navigation, UI components | `mobile/` | Shankararam | 🚧 sign in and payments screens work; provider screens not started |
 | 6 | **Admin console** — users, payments, audit log, dashboard (API + web screens) | `admin/` | SelvaPriya | ✅ working |
 
 ## How to claim a module
