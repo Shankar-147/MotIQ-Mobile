@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 
 @Module({
+  imports: [AuthModule], // for JwtAuthGuard
   controllers: [PaymentsController],
   providers: [PaymentsService],
-  exports: [PaymentsService],
+  exports: [PaymentsService], // the admin module lists and refunds payments
 })
 export class PaymentsModule {}
