@@ -16,7 +16,22 @@ describe('AdminController', () => {
     record: jest.fn(async () => undefined),
     list: jest.fn(async () => ({ items: [], total: 0, page: 1, pageSize: 20 })),
   };
-  const controller = new AdminController(users as any, payments as any, audit as any);
+  const providers = {
+    listForAdmin: jest.fn(async () => ({ items: [], total: 0, page: 1, pageSize: 20 })),
+    getForAdmin: jest.fn(async () => ({ id: 'p1' })),
+    review: jest.fn(async () => ({ id: 'p1', businessName: 'Asha Auto Care' })),
+  };
+  const requests = {
+    listAll: jest.fn(async () => ({ items: [], total: 0, page: 1, pageSize: 20 })),
+    countByStatus: jest.fn(async () => ({ completed: 2 })),
+  };
+  const controller = new AdminController(
+    users as any,
+    payments as any,
+    audit as any,
+    providers as any,
+    requests as any,
+  );
   const admin = { id: 'a1', phoneNumber: '+917777777777', name: null, role: 'admin' as const };
 
   beforeEach(() => jest.clearAllMocks());

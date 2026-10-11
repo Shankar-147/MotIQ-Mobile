@@ -6,6 +6,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PageQuery } from '../common/pagination';
 import { ListPaymentsQuery } from '../payments/dto/list-payments.query';
 import { PaymentsService } from '../payments/payments.service';
+import { ListProvidersQuery } from '../providers/dto/list-providers.query';
+import { ReviewProviderDto } from '../providers/dto/review-provider.dto';
+import { ProvidersService } from '../providers/providers.service';
+import { ListRequestsQuery } from '../requests/dto/list-requests.query';
+import { RequestsService } from '../requests/requests.service';
 import { AdminUsersService } from './admin-users.service';
 import { AuditService } from './audit.service';
 import { ListUsersQuery } from './dto/list-users.query';
@@ -20,15 +25,45 @@ export class AdminController {
     private readonly users: AdminUsersService,
     private readonly payments: PaymentsService,
     private readonly audit: AuditService,
+    private readonly providers: ProvidersService,
+    private readonly requests: RequestsService,
   ) {}
 
   @Get('stats')
   async stats() {
-    const [users, payments] = await Promise.all([
+    const [users, payments, requests] = await Promise.all([
       this.users.countByStatus(),
       this.payments.summary(),
+      this.requests.countByStatus(),
     ]);
-    return { users, payments };
+    return { users, payments, requests };
+  }
+
+  @Get('providers')
+  listProviders(@Query() query: ListProvidersQuery) {
+    return this.providers.listForAdmin(query);
+  }
+
+  @Get('providers/:id')
+  getProvider(@Param('id') id: string) {
+    return this.providers.getForAdmin(id);
+  }
+
+  // Approve or reject a provider's application.
+  @Post('providers/:id/review')
+  async reviewProvider(
+    @CurrentUser() admin: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ReviewProviderDto,
+  ) {
+    const provider = await this.providers.review(id, dto);
+    await this.audit.record(admin.id, `provider.${dto.decision}`, id, provider.businessName);
+    return provider;
+  }
+
+  @Get('requests')
+  listRequests(@Query() query: ListRequestsQuery) {
+    return this.requests.listAll(query);
   }
 
   @Get('users')
