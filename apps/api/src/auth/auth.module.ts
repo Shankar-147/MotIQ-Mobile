@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpStoreService } from './otp-store.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { AdminGuard } from './admin.guard';
 
 @Module({
   imports: [
@@ -16,7 +18,8 @@ import { OtpStoreService } from './otp-store.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, OtpStoreService],
-  exports: [AuthService],
+  providers: [AuthService, OtpStoreService, JwtAuthGuard, AdminGuard],
+  // The guards are exported so the payments and admin modules can use them.
+  exports: [AuthService, JwtModule, JwtAuthGuard, AdminGuard],
 })
 export class AuthModule {}
