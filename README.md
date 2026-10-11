@@ -32,6 +32,16 @@ payment gateway and SMS provider.
 
 Needs Node 20+ and a running PostgreSQL.
 
+### One command (Windows)
+
+Double-click `run-demo.bat` (or run it from a terminal). It prepares the
+database, starts the API, web console and mobile app, and opens a separate
+browser window for the admin, a customer and a provider, each with its own
+signed-in session. One-time codes show up in a window called "MotIQ OTP
+codes". Double-click `stop-demo.bat` to stop everything.
+
+### Step by step
+
 ```
 # API
 cd apps/api
