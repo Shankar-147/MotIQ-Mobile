@@ -26,7 +26,11 @@ describe('AuthController', () => {
 
   it('passes phone, code and name on when verifying', async () => {
     await controller.verifyOtp({ phoneNumber: '+919999999999', code: '123456', name: 'Asha' });
-    expect(authService.verifyOtp).toHaveBeenCalledWith('+919999999999', '123456', 'Asha');
+    expect(authService.verifyOtp).toHaveBeenCalledWith('+919999999999', '123456', {
+      name: 'Asha',
+      role: undefined,
+      businessName: undefined,
+    });
   });
 
   it('returns the logged in user from me()', () => {

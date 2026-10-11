@@ -24,7 +24,11 @@ export class AuthController {
   @Post('otp/verify')
   @HttpCode(200)
   verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.authService.verifyOtp(dto.phoneNumber, dto.code, dto.name);
+    return this.authService.verifyOtp(dto.phoneNumber, dto.code, {
+      name: dto.name,
+      role: dto.role,
+      businessName: dto.businessName,
+    });
   }
 
   @Get('me')

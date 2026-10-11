@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { OtpStoreService } from './otp-store.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AdminGuard } from './admin.guard';
+import { ProviderGuard } from './provider.guard';
 
 @Module({
   imports: [
@@ -18,8 +19,8 @@ import { AdminGuard } from './admin.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, OtpStoreService, JwtAuthGuard, AdminGuard],
-  // The guards are exported so the payments and admin modules can use them.
-  exports: [AuthService, JwtModule, JwtAuthGuard, AdminGuard],
+  providers: [AuthService, OtpStoreService, JwtAuthGuard, AdminGuard, ProviderGuard],
+  // The guards are exported so the other modules can use them.
+  exports: [AuthService, JwtModule, JwtAuthGuard, AdminGuard, ProviderGuard],
 })
 export class AuthModule {}

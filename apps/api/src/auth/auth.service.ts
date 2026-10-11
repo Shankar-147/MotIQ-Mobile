@@ -10,6 +10,12 @@ interface SessionToken {
   expiresIn: number;
 }
 
+export interface SignupDetails {
+  name?: string;
+  role?: 'user' | 'provider';
+  businessName?: string;
+}
+
 const TOKEN_TTL_SECONDS = 60 * 60 * 24; // 24h
 
 @Injectable()
@@ -35,17 +41,33 @@ export class AuthService {
     console.log(`[dev] OTP for ${phone}: ${code}`);
   }
 
-  async verifyOtp(phoneNumber: string, code: string, name?: string): Promise<SessionToken> {
+  // `signup` only matters the first time a number logs in: it says whether
+  // this person is a customer or a service provider.
+  async verifyOtp(
+    phoneNumber: string,
+    code: string,
+    signup: SignupDetails = {},
+  ): Promise<SessionToken> {
     const phone = normalizePhone(phoneNumber);
     if (!(await this.otpStore.verify(phone, code))) {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
-    // First successful login creates the user.
+    // First successful login creates the user (and the provider profile
+    // for someone signing up as a provider).
     const isAdmin = this.adminPhones.has(phone);
+    const role = isAdmin ? 'admin' : signup.role === 'provider' ? 'provider' : 'user';
     const user = await this.prisma.user.upsert({
       where: { phoneNumber: phone },
-      create: { phoneNumber: phone, name, role: isAdmin ? 'admin' : 'user' },
+      create: {
+        phoneNumber: phone,
+        name: signup.name,
+        role,
+        providerProfile:
+          role === 'provider'
+            ? { create: { businessName: signup.businessName || signup.name || 'Service provider' } }
+            : undefined,
+      },
       update: isAdmin ? { role: 'admin' } : {},
     });
     if (user.status === 'suspended') {
