@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { FareService } from './fare.service';
 import { PaymentsService } from './payments.service';
 
 const owner = { id: 'u1', phoneNumber: '+919999999999', name: null, role: 'user' as const };
@@ -19,7 +20,8 @@ function setup() {
       groupBy: jest.fn(async () => []),
     },
   };
-  return { prisma, service: new PaymentsService(prisma as any) };
+  const fare = new FareService({ get: () => '15' } as any);
+  return { prisma, service: new PaymentsService(prisma as any, fare) };
 }
 
 describe('PaymentsService', () => {
@@ -123,6 +125,6 @@ describe('PaymentsService', () => {
       .mockResolvedValueOnce([{ currency: 'INR', _sum: { amount: 1500 } }] as any);
     const summary = await service.summary();
     expect(summary.counts).toEqual({ pending: 0, succeeded: 3, failed: 0, refunded: 0 });
-    expect(summary.collected).toEqual([{ currency: 'INR', amount: 1500 }]);
+    expect(summary.collected).toEqual([{ currency: 'INR', amount: 1500, commission: 0 }]);
   });
 });
