@@ -1,30 +1,32 @@
-# MOTIQ — Mobile Roadside Assistance Platform
+# MOTIQ — Roadside Assistance Platform
 
-An AI-assisted roadside-assistance marketplace connecting drivers to verified
-service providers, built as a team project.
+A roadside-assistance marketplace. A driver in trouble asks for help in the
+app; the nearest approved service provider who is online and free is offered
+the job, does the work, and gets paid. The platform keeps a commission.
+Operators approve providers and watch everything from a web console.
 
 ## Team
 
-| Name | Roll no. | GitHub | Module |
-|------|----------|--------|--------|
-| Shankararam S U | 2024115020 | @Shankar-147 | Auth, database, project setup, web app |
-| Viswa C | 2024115128 | @VISWA0006 | Payments |
-| SelvaPriya S | 2024115046 | @2024115046 | Admin console |
+| Name | Roll no. | GitHub | Owns |
+|------|----------|--------|------|
+| Shankararam S U | 2024115020 | @Shankar-147 | Auth, requests and matching |
+| Viswa C | 2024115128 | @VISWA0006 | Payments, fare and commission |
+| SelvaPriya S | 2024115046 | @2024115046 | Providers and approval, admin |
 
-## Modules
+## What is built
 
-See [MODULES.md](MODULES.md) for how the project is split across the team and
-current status of each module.
+- **Customers** (mobile): sign in with a phone number, ask for help, follow the
+  request, pay.
+- **Providers** (mobile): sign up, upload documents, go online in an area,
+  accept or decline offers, move a job through its steps, see earnings.
+- **Matching:** the nearest approved, online, free provider is offered the job;
+  if they decline it goes to the next one.
+- **Money:** fare from the problem plus distance, commission split on every bill.
+- **Admin** (web): approve providers, see requests, users and payments, refund,
+  audit log, dashboard.
 
-## What works today
-
-- **Auth** — phone number and one-time code login, JWT, guards.
-- **Payments** — create, confirm and refund payments for the logged in user.
-- **Admin** — search and suspend users, list and refund payments, audit log, dashboard.
-- **Web app** — sign in, my payments, profile, and the admin screens.
-- **Mobile app** — sign in and payments on a phone (Expo).
-
-Not built yet: service requests and provider matching.
+Not built yet: ratings, SOS, live GPS tracking, push notifications, a real
+payment gateway and SMS provider.
 
 ## Running it
 
@@ -36,35 +38,29 @@ cd apps/api
 npm install
 copy .env.example .env        # then set DATABASE_URL and JWT_SECRET
 npx prisma migrate deploy
-npm run seed                  # demo admin, 5 users, 10 payments
+npm run seed                  # demo admin, customers, providers and jobs
 npm run start:dev             # http://localhost:3001/api/v1
 
-# Web app (second terminal)
+# Web console (second terminal)
 cd apps/web
 npm install
 npm run dev                   # http://localhost:5173
-```
 
-Sign in as the demo admin with `99999 00000`. There is no SMS provider yet,
-so the one-time code is printed in the API terminal.
-
-Mobile app (third terminal, optional):
-
-```
+# Mobile app in a browser (third terminal)
 cd apps/mobile
 npm install
-npx expo start --web --port 8081   # or press a for an Android emulator
+npx expo start --web --port 8081   # http://localhost:8081
 ```
 
+There is no SMS provider yet, so the one-time code is printed in the API
+terminal. Demo numbers: admin `99999 00000`, providers `98460 00001` and
+`98460 00002` (approved) and `98460 00003` (waiting for approval), customer
+`98450 00011`. Any new 10 digit number signs up as a customer or provider.
+
 Tests: `cd apps/api && npx jest`.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the git workflow, and
-[GIT_GUIDE.md](GIT_GUIDE.md) if you're new to git.
 
 ## Tech stack
 
 - **API:** NestJS, TypeScript, Prisma, PostgreSQL, JWT, Jest
-- **Web app:** React, Vite, TypeScript
+- **Web console:** React, Vite, TypeScript
 - **Mobile app:** React Native (Expo), TypeScript
