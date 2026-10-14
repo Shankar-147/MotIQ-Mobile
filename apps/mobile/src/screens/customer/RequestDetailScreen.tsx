@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api, ApiError, ServiceRequest } from '../../lib/api';
 import { formatMoney, formatPhone } from '../../lib/format';
@@ -16,6 +16,7 @@ export default function RequestDetailScreen({ route }: Props) {
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [stars, setStars] = useState(0);
 
   const reload = usePolling(async () => {
     try {
@@ -117,6 +118,34 @@ export default function RequestDetailScreen({ route }: Props) {
         )
       )}
 
+      {request.status === 'completed' &&
+        (request.rating ? (
+          <Card>
+            <Text style={styles.section}>Your rating</Text>
+            <Text style={styles.starsDone}>
+              {'★'.repeat(request.rating.stars)}
+              <Text style={styles.starOff}>{'★'.repeat(5 - request.rating.stars)}</Text>
+            </Text>
+          </Card>
+        ) : (
+          <Card>
+            <Text style={styles.section}>How was the service?</Text>
+            <View style={styles.stars}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable key={n} onPress={() => setStars(n)} accessibilityLabel={`${n} stars`}>
+                  <Text style={[styles.star, n <= stars ? styles.starOn : styles.starOff]}>★</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Button
+              title="Submit rating"
+              disabled={stars === 0}
+              loading={busy}
+              onPress={() => act(() => api.rateRequest(id, stars))}
+            />
+          </Card>
+        ))}
+
       {request.status === 'no_provider' && (
         <>
           <Button title="Try again" loading={busy} onPress={() => act(() => api.retryRequest(id))} />
@@ -151,4 +180,9 @@ const styles = StyleSheet.create({
   dotDone: { backgroundColor: colors.brand },
   stepText: { fontSize: 15, color: colors.muted },
   stepTextDone: { color: colors.ink, fontWeight: '600' },
+  stars: { flexDirection: 'row', marginBottom: 14 },
+  star: { fontSize: 38, marginRight: 6 },
+  starsDone: { fontSize: 30, color: '#e0a100' },
+  starOn: { color: '#e0a100' },
+  starOff: { color: colors.line },
 });

@@ -64,6 +64,7 @@ export interface ServiceRequest {
   } | null;
   customer?: { name: string | null; phoneNumber?: string };
   payment?: { id: string; status: PaymentStatus; amount?: number } | null;
+  rating?: { stars: number; comment: string | null } | null;
 }
 
 export interface ProviderProfile {
@@ -74,6 +75,7 @@ export interface ProviderProfile {
   online: boolean;
   areaName: string | null;
   documents: { id: string; type: DocumentType; fileUrl: string; createdAt: string }[];
+  rating?: { average: number | null; count: number };
 }
 
 export interface Earnings {
@@ -153,6 +155,8 @@ export const api = {
   getRequest: (id: string) => request<ServiceRequest>(`/requests/${id}`),
   cancelRequest: (id: string) => request<ServiceRequest>(`/requests/${id}/cancel`, post()),
   retryRequest: (id: string) => request<ServiceRequest>(`/requests/${id}/retry`, post()),
+  rateRequest: (id: string, stars: number, comment?: string) =>
+    request<unknown>(`/requests/${id}/rating`, post({ stars, comment })),
 
   // payments
   payments: () => request<Payment[]>('/payments'),

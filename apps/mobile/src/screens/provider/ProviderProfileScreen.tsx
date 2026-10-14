@@ -56,6 +56,14 @@ export default function ProviderProfileScreen() {
           <Text style={styles.label}>Verification</Text>
           {profile && <StatusPill status={profile.verification} />}
         </View>
+        <Row
+          label="Customer rating"
+          value={
+            profile?.rating && profile.rating.count > 0
+              ? `${profile.rating.average} / 5 (${profile.rating.count})`
+              : 'No ratings yet'
+          }
+        />
         {profile?.reviewNote && <Text style={styles.note}>Admin note: {profile.reviewNote}</Text>}
       </Card>
 
