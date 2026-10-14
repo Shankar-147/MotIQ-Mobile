@@ -73,6 +73,7 @@ model ProviderProfile {
   documents    ProviderDocument[]
   requests     ServiceRequest[]
   offers       RequestOffer[]
+  ratings      Rating[]
 }
 
 model ProviderDocument {
@@ -139,6 +140,7 @@ model ServiceRequest {
   completedAt DateTime?
   offers      RequestOffer[]
   payment     Payment?
+  rating      Rating?
 
   @@index([customerId])
   @@index([providerId])
@@ -197,4 +199,21 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// -------------------------------------------------------------- ratings
+
+// A customer's rating of the provider after a completed job. One per job.
+model Rating {
+  id         String          @id @default(uuid())
+  requestId  String          @unique
+  request    ServiceRequest  @relation(fields: [requestId], references: [id])
+  customerId String
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id])
+  stars      Int
+  comment    String?
+  createdAt  DateTime        @default(now())
+
+  @@index([providerId])
 }
