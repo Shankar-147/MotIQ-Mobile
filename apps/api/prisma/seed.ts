@@ -52,6 +52,7 @@ async function main() {
   }
 
   await seedProvidersAndJobs(users);
+  await seedRatings();
 
   console.log(`Demo admin: ${ADMIN_PHONE}. Users: ${users.length}. Payments: ${PAYMENTS.length}.`);
   console.log('Demo providers: +919846000001 (Asha, online), +919846000002 (Bala, online), +919846000003 (Kiran, pending).');
@@ -181,6 +182,31 @@ async function seedProvidersAndJobs(customers: { id: string }[]) {
         currency: 'INR',
         status: paymentStatus,
         createdAt,
+      },
+    });
+  }
+}
+
+// ---- ratings on the finished jobs, so the provider averages are not empty
+
+const SAMPLE_STARS = [5, 4, 5, 3, 4, 5];
+const SAMPLE_COMMENTS = ['Quick and polite', 'Good work', null, 'Took a while to arrive', null, 'Very helpful'];
+
+async function seedRatings() {
+  if ((await prisma.rating.count()) > 0) return;
+
+  const jobs = await prisma.serviceRequest.findMany({
+    where: { status: 'completed', providerId: { not: null } },
+    orderBy: { createdAt: 'asc' },
+  });
+  for (const [index, job] of jobs.entries()) {
+    await prisma.rating.create({
+      data: {
+        requestId: job.id,
+        customerId: job.customerId,
+        providerId: job.providerId!,
+        stars: SAMPLE_STARS[index % SAMPLE_STARS.length],
+        comment: SAMPLE_COMMENTS[index % SAMPLE_COMMENTS.length],
       },
     });
   }
