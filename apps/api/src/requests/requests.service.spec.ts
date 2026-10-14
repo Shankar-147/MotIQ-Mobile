@@ -1,4 +1,7 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { RateRequestDto } from './dto/rate-request.dto';
 import { RequestsService } from './requests.service';
 
 const customer = { id: 'c1', phoneNumber: '+919800000001', name: 'Chitra', role: 'user' as const };
@@ -18,6 +21,10 @@ function setup() {
       groupBy: jest.fn(async () => []),
     },
     providerProfile: { findUnique: jest.fn(async () => profile) },
+    rating: {
+      findUnique: jest.fn(async () => null),
+      create: jest.fn(async ({ data }: any) => ({ id: 'rt1', ...data })),
+    },
     requestOffer: {
       findFirst: jest.fn(),
       update: jest.fn(async () => ({})),
@@ -109,6 +116,65 @@ describe('RequestsService: customer', () => {
 
     prisma.serviceRequest.findUnique.mockResolvedValue({ id: 'r1', customerId: 'c1', status: 'assigned' });
     await expect(service.retry('c1', 'r1')).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('RequestsService: rating', () => {
+  const completed = { id: 'r1', customerId: 'c1', providerId: 'p1', status: 'completed' };
+
+  it('lets the customer rate a completed job and stores who was rated', async () => {
+    const { prisma, service } = setup();
+    prisma.serviceRequest.findUnique.mockResolvedValue(completed);
+    await service.rate('c1', 'r1', { stars: 5, comment: 'Quick and polite' });
+
+    expect(prisma.rating.create).toHaveBeenCalledWith({
+      data: { requestId: 'r1', customerId: 'c1', providerId: 'p1', stars: 5, comment: 'Quick and polite' },
+    });
+  });
+
+  it('refuses a rating for a request that does not exist', async () => {
+    const { prisma, service } = setup();
+    prisma.serviceRequest.findUnique.mockResolvedValue(null);
+    await expect(service.rate('c1', 'nope', { stars: 4 })).rejects.toThrow(NotFoundException);
+  });
+
+  it('refuses a rating from someone who is not the customer', async () => {
+    const { prisma, service } = setup();
+    prisma.serviceRequest.findUnique.mockResolvedValue({ ...completed, customerId: 'other' });
+    await expect(service.rate('c1', 'r1', { stars: 4 })).rejects.toThrow(ForbiddenException);
+    expect(prisma.rating.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a rating while the job is still in progress', async () => {
+    const { prisma, service } = setup();
+    prisma.serviceRequest.findUnique.mockResolvedValue({ ...completed, status: 'in_progress' });
+    await expect(service.rate('c1', 'r1', { stars: 4 })).rejects.toThrow(BadRequestException);
+    expect(prisma.rating.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a second rating for the same job', async () => {
+    const { prisma, service } = setup();
+    prisma.serviceRequest.findUnique.mockResolvedValue(completed);
+    prisma.rating.findUnique.mockResolvedValue({ id: 'rt1' } as any);
+    await expect(service.rate('c1', 'r1', { stars: 3 })).rejects.toThrow(BadRequestException);
+    expect(prisma.rating.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts 1 to 5 stars and rejects anything else', async () => {
+    const check = async (stars: unknown) =>
+      (await validate(plainToInstance(RateRequestDto, { stars }))).length;
+
+    expect(await check(1)).toBe(0);
+    expect(await check(5)).toBe(0);
+    expect(await check(0)).toBeGreaterThan(0);
+    expect(await check(6)).toBeGreaterThan(0);
+    expect(await check(3.5)).toBeGreaterThan(0);
+    expect(await check('5')).toBeGreaterThan(0);
+  });
+
+  it('rejects a comment longer than 280 characters', async () => {
+    const errors = await validate(plainToInstance(RateRequestDto, { stars: 4, comment: 'x'.repeat(281) }));
+    expect(errors.length).toBeGreaterThan(0);
   });
 });
 

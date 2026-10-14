@@ -13,6 +13,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { ListRequestsQuery } from './dto/list-requests.query';
+import { RateRequestDto } from './dto/rate-request.dto';
 import { MatchingService } from './matching.service';
 
 // The steps a provider moves a job through. Anything else is refused.
@@ -88,6 +89,7 @@ export class RequestsService {
         provider: providerSummary,
         customer: { select: { name: true, phoneNumber: true } },
         payment: { select: { id: true, status: true, amount: true } },
+        rating: { select: { stars: true, comment: true } },
       },
     });
     if (!request) {
@@ -138,6 +140,36 @@ export class RequestsService {
       throw new BadRequestException('Only a request with no provider can be retried');
     }
     return this.matching.assignNext(id);
+  }
+
+  // Rating the provider. Only the customer who asked for the help can do it,
+  // only once the job is completed, and only once per job.
+  async rate(customerId: string, id: string, dto: RateRequestDto) {
+    const request = await this.prisma.serviceRequest.findUnique({ where: { id } });
+    if (!request) {
+      throw new NotFoundException(`Request ${id} not found`);
+    }
+    if (request.customerId !== customerId) {
+      throw new ForbiddenException('This request belongs to someone else');
+    }
+    if (request.status !== 'completed' || !request.providerId) {
+      throw new BadRequestException('You can rate a job once it is completed');
+    }
+
+    const existing = await this.prisma.rating.findUnique({ where: { requestId: id } });
+    if (existing) {
+      throw new BadRequestException('You have already rated this job');
+    }
+
+    return this.prisma.rating.create({
+      data: {
+        requestId: id,
+        customerId,
+        providerId: request.providerId,
+        stars: dto.stars,
+        comment: dto.comment,
+      },
+    });
   }
 
   // ----------------------------------------------------------- provider

@@ -3,6 +3,7 @@ import { AuthUser } from '../auth/auth-user';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateRequestDto } from './dto/create-request.dto';
+import { RateRequestDto } from './dto/rate-request.dto';
 import { RequestsService } from './requests.service';
 
 // A customer asking for help and following the request. The customer is
@@ -35,5 +36,10 @@ export class RequestsController {
   @Post(':id/retry')
   retry(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.requests.retry(user.id, id);
+  }
+
+  @Post(':id/rating')
+  rate(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: RateRequestDto) {
+    return this.requests.rate(user.id, id, dto);
   }
 }

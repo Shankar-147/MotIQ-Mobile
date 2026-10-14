@@ -13,6 +13,7 @@ describe('RequestsController', () => {
     findOneFor: jest.fn(async () => ({ id: 'r1' })),
     cancel: jest.fn(async () => ({ id: 'r1' })),
     retry: jest.fn(async () => ({ id: 'r1' })),
+    rate: jest.fn(async () => ({ id: 'rt1' })),
   };
   const controller = new RequestsController(service as any);
 
@@ -26,6 +27,11 @@ describe('RequestsController', () => {
   it('lists only the logged in customer\'s requests', async () => {
     await controller.findMine(customer);
     expect(service.findMine).toHaveBeenCalledWith('c1');
+  });
+
+  it('rates as the logged in customer', async () => {
+    await controller.rate(customer, 'r1', { stars: 5, comment: 'Great' });
+    expect(service.rate).toHaveBeenCalledWith('c1', 'r1', { stars: 5, comment: 'Great' });
   });
 
   it('cancels and retries as the logged in customer', async () => {
