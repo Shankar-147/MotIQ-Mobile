@@ -15,7 +15,7 @@ export class ProvidersController {
 
   @Get()
   profile(@CurrentUser() user: AuthUser) {
-    return this.providers.findByUserId(user.id);
+    return this.providers.profileFor(user.id);
   }
 
   @Post('documents')

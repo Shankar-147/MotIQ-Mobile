@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { ProvidersService } from './providers.service';
+import { ProvidersService, summariseRating } from './providers.service';
 
 const approved = {
   id: 'p1',
@@ -22,6 +22,10 @@ function setup() {
       update: jest.fn(async ({ data }: any) => ({ ...approved, ...data })),
     },
     providerDocument: { create: jest.fn(async ({ data }: any) => ({ id: 'd1', ...data })) },
+    rating: {
+      aggregate: jest.fn(async () => ({ _avg: { stars: null }, _count: { _all: 0 } })),
+      groupBy: jest.fn(async () => []),
+    },
   };
   return { prisma, service: new ProvidersService(prisma as any) };
 }
@@ -137,5 +141,55 @@ describe('ProvidersService', () => {
     expect((prisma.providerProfile.findMany.mock.calls[0] as any)[0].where).toEqual({
       verification: 'pending',
     });
+  });
+
+  it('shows a provider with no ratings as no average and a count of zero', async () => {
+    const { prisma, service } = setup();
+    prisma.providerProfile.findUnique.mockResolvedValue(approved);
+    const profile = await service.profileFor('u1');
+    expect(profile.rating).toEqual({ average: null, count: 0 });
+  });
+
+  it('works out the average from the ratings and shows one decimal', async () => {
+    const { prisma, service } = setup();
+    prisma.providerProfile.findUnique.mockResolvedValue(approved);
+    prisma.rating.aggregate.mockResolvedValue({ _avg: { stars: 4.333333 }, _count: { _all: 3 } } as any);
+    const profile = await service.profileFor('u1');
+    expect(profile.rating).toEqual({ average: 4.3, count: 3 });
+    expect((prisma.rating.aggregate.mock.calls[0] as any)[0].where).toEqual({ providerId: 'p1' });
+  });
+
+  it('adds each provider\'s rating to the admin list with a single query', async () => {
+    const { prisma, service } = setup();
+    prisma.providerProfile.findMany.mockResolvedValue([{ ...approved, id: 'p1' }, { ...approved, id: 'p2' }] as any);
+    prisma.rating.groupBy.mockResolvedValue([
+      { providerId: 'p1', _avg: { stars: 4.5 }, _count: { _all: 2 } },
+    ] as any);
+
+    const page = (await service.listForAdmin({ page: 1, pageSize: 10 })) as any;
+
+    expect(page.items[0].rating).toEqual({ average: 4.5, count: 2 });
+    expect(page.items[1].rating).toEqual({ average: null, count: 0 });
+    expect(prisma.rating.groupBy).toHaveBeenCalledTimes(1);
+  });
+
+  it('includes the rating when the admin opens one provider', async () => {
+    const { prisma, service } = setup();
+    prisma.providerProfile.findUnique.mockResolvedValue(approved);
+    prisma.rating.aggregate.mockResolvedValue({ _avg: { stars: 5 }, _count: { _all: 1 } } as any);
+    const profile = await service.getForAdmin('p1');
+    expect(profile.rating).toEqual({ average: 5, count: 1 });
+  });
+});
+
+describe('summariseRating', () => {
+  it('rounds to one decimal', () => {
+    expect(summariseRating(4.25, 4)).toEqual({ average: 4.3, count: 4 });
+    expect(summariseRating(3.04, 5)).toEqual({ average: 3, count: 5 });
+  });
+
+  it('reports no average when there are no ratings', () => {
+    expect(summariseRating(null, 0)).toEqual({ average: null, count: 0 });
+    expect(summariseRating(0, 0)).toEqual({ average: null, count: 0 });
   });
 });

@@ -18,6 +18,20 @@ export const BUSY_STATUSES: RequestStatus[] = [
   'in_progress',
 ];
 
+export interface RatingSummary {
+  average: number | null;
+  count: number;
+}
+
+// The average is worked out from the ratings every time, never stored, so it
+// cannot go out of date. It is shown to one decimal place.
+export function summariseRating(average: number | null, count: number): RatingSummary {
+  if (count === 0 || average === null) {
+    return { average: null, count: 0 };
+  }
+  return { average: Math.round(average * 10) / 10, count };
+}
+
 @Injectable()
 export class ProvidersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -31,6 +45,12 @@ export class ProvidersService {
       throw new NotFoundException('No provider profile for this account');
     }
     return profile;
+  }
+
+  // The provider's own profile, with their rating.
+  async profileFor(userId: string) {
+    const profile = await this.findByUserId(userId);
+    return { ...profile, rating: await this.ratingFor(profile.id) };
   }
 
   async addDocument(userId: string, dto: AddDocumentDto) {
@@ -102,7 +122,13 @@ export class ProvidersService {
       }),
       this.prisma.providerProfile.count({ where }),
     ]);
-    return { items, total, page: query.page, pageSize: query.pageSize };
+    const ratings = await this.ratingsFor(items.map((item) => item.id));
+    return {
+      items: items.map((item) => ({ ...item, rating: ratings.get(item.id) ?? summariseRating(null, 0) })),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
   }
 
   async getForAdmin(id: string) {
@@ -116,7 +142,7 @@ export class ProvidersService {
     if (!profile) {
       throw new NotFoundException(`Provider ${id} not found`);
     }
-    return profile;
+    return { ...profile, rating: await this.ratingFor(id) };
   }
 
   // Approve or reject a provider. A provider with no documents cannot be
@@ -135,5 +161,33 @@ export class ProvidersService {
         ...(dto.decision === 'rejected' ? { online: false } : {}),
       },
     });
+  }
+
+  // ------------------------------------------------------------ ratings
+
+  private async ratingFor(providerId: string): Promise<RatingSummary> {
+    const result = await this.prisma.rating.aggregate({
+      where: { providerId },
+      _avg: { stars: true },
+      _count: { _all: true },
+    });
+    return summariseRating(result._avg.stars, result._count._all);
+  }
+
+  // One query for a whole page of providers instead of one per row.
+  private async ratingsFor(providerIds: string[]): Promise<Map<string, RatingSummary>> {
+    const summaries = new Map<string, RatingSummary>();
+    if (providerIds.length === 0) return summaries;
+
+    const rows = await this.prisma.rating.groupBy({
+      by: ['providerId'],
+      where: { providerId: { in: providerIds } },
+      _avg: { stars: true },
+      _count: { _all: true },
+    });
+    for (const row of rows) {
+      summaries.set(row.providerId, summariseRating(row._avg.stars, row._count._all));
+    }
+    return summaries;
   }
 }

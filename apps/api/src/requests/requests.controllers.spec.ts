@@ -73,7 +73,7 @@ describe('ProviderJobsController', () => {
 
 describe('ProvidersController', () => {
   const service = {
-    findByUserId: jest.fn(async () => ({ id: 'p1' })),
+    profileFor: jest.fn(async () => ({ id: 'p1' })),
     addDocument: jest.fn(async () => ({ id: 'd1' })),
     setPresence: jest.fn(async () => ({ id: 'p1' })),
   };
@@ -83,7 +83,7 @@ describe('ProvidersController', () => {
     await controller.profile(provider);
     await controller.addDocument(provider, { type: 'id_proof', fileUrl: 'https://x/id.jpg' });
     await controller.presence(provider, { online: true, areaName: 'MG Road' });
-    expect(service.findByUserId).toHaveBeenCalledWith('u9');
+    expect(service.profileFor).toHaveBeenCalledWith('u9');
     expect(service.addDocument).toHaveBeenCalledWith('u9', { type: 'id_proof', fileUrl: 'https://x/id.jpg' });
     expect(service.setPresence).toHaveBeenCalledWith('u9', { online: true, areaName: 'MG Road' });
   });
