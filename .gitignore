@@ -8,3 +8,6 @@ build/
 coverage/
 .expo/
 .next/
+
+# Output of run-demo
+scripts/.logs/

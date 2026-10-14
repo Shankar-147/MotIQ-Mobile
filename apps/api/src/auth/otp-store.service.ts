@@ -1,52 +1,66 @@
-import { Injectable } from '@nestjs/common';
-import { randomInt, createHash, timingSafeEqual } from 'crypto';
-
-interface OtpEntry {
-  codeHash: string;
-  expiresAt: number;
-  attempts: number;
-}
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
+import { PrismaService } from '../prisma/prisma.service';
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
+const RESEND_COOLDOWN_MS = 60 * 1000;
 
 /**
- * In-memory OTP store for local development. Swap for a Redis-backed
- * implementation before production (entries must survive across instances).
+ * Keeps one pending OTP per phone number in the otp_challenge table.
+ * Only a hash of the code is stored, never the code itself.
  */
 @Injectable()
 export class OtpStoreService {
-  private readonly entries = new Map<string, OtpEntry>();
+  constructor(private readonly prisma: PrismaService) {}
 
-  generate(phoneNumber: string): string {
+  async generate(phoneNumber: string): Promise<string> {
+    const existing = await this.prisma.otpChallenge.findUnique({ where: { phoneNumber } });
+    if (existing && Date.now() - existing.issuedAt.getTime() < RESEND_COOLDOWN_MS) {
+      throw new HttpException(
+        'Please wait before requesting another code',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
-    this.entries.set(phoneNumber, {
+    const now = Date.now();
+    const data = {
       codeHash: this.hash(code),
-      expiresAt: Date.now() + OTP_TTL_MS,
+      expiresAt: new Date(now + OTP_TTL_MS),
       attempts: 0,
+      issuedAt: new Date(now),
+    };
+    await this.prisma.otpChallenge.upsert({
+      where: { phoneNumber },
+      create: { phoneNumber, ...data },
+      update: data,
     });
     return code;
   }
 
-  verify(phoneNumber: string, code: string): boolean {
-    const entry = this.entries.get(phoneNumber);
+  async verify(phoneNumber: string, code: string): Promise<boolean> {
+    const entry = await this.prisma.otpChallenge.findUnique({ where: { phoneNumber } });
     if (!entry) return false;
 
-    if (Date.now() > entry.expiresAt || entry.attempts >= MAX_ATTEMPTS) {
-      this.entries.delete(phoneNumber);
+    if (Date.now() > entry.expiresAt.getTime() || entry.attempts >= MAX_ATTEMPTS) {
+      await this.prisma.otpChallenge.deleteMany({ where: { phoneNumber } });
       return false;
     }
 
-    entry.attempts += 1;
+    // Count the attempt before comparing, so the limit also applies to a
+    // correct code typed on the last allowed try.
+    await this.prisma.otpChallenge.update({
+      where: { phoneNumber },
+      data: { attempts: { increment: 1 } },
+    });
 
-    const candidateHash = Buffer.from(this.hash(code));
-    const storedHash = Buffer.from(entry.codeHash);
-    const matches =
-      candidateHash.length === storedHash.length &&
-      timingSafeEqual(candidateHash, storedHash);
+    const candidate = Buffer.from(this.hash(code));
+    const stored = Buffer.from(entry.codeHash);
+    const matches = candidate.length === stored.length && timingSafeEqual(candidate, stored);
 
     if (matches) {
-      this.entries.delete(phoneNumber);
+      await this.prisma.otpChallenge.deleteMany({ where: { phoneNumber } });
     }
     return matches;
   }

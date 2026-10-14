@@ -1,34 +1,76 @@
-# MOTIQ — Mobile Roadside Assistance Platform
+# MOTIQ — Roadside Assistance Platform
 
-An AI-assisted roadside-assistance marketplace connecting drivers to verified
-service providers, built as a team project.
+A roadside-assistance marketplace. A driver in trouble asks for help in the
+app; the nearest approved service provider who is online and free is offered
+the job, does the work, and gets paid. The platform keeps a commission.
+Operators approve providers and watch everything from a web console.
 
 ## Team
 
-| Name | GitHub | Module(s) |
-|------|--------|-----------|
-| Shankararam S U | @Shankar-147 | Auth (OTP login), project setup |
-| _(teammate 2)_ | | |
-| _(teammate 3)_ | | |
-| _(teammate 4)_ | | |
+| Name | Roll no. | GitHub | Owns |
+|------|----------|--------|------|
+| Shankararam S U | 2024115020 | @Shankar-147 | Auth, requests and matching |
+| Viswa C | 2024115128 | @VISWA0006 | Payments, fare and commission |
+| SelvaPriya S | 2024115046 | @2024115046 | Providers and approval, admin |
 
-## Modules
+## What is built
 
-See [MODULES.md](MODULES.md) for how the project is split across the team and
-current status of each module.
+- **Customers** (mobile): sign in with a phone number, ask for help, follow the
+  request, pay.
+- **Providers** (mobile): sign up, upload documents, go online in an area,
+  accept or decline offers, move a job through its steps, see earnings.
+- **Matching:** the nearest approved, online, free provider is offered the job;
+  if they decline it goes to the next one.
+- **Money:** fare from the problem plus distance, commission split on every bill.
+- **Admin** (web): approve providers, see requests, users and payments, refund,
+  audit log, dashboard.
 
-## Getting started
+Not built yet: ratings, SOS, live GPS tracking, push notifications, a real
+payment gateway and SMS provider.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the git workflow, and
-[GIT_GUIDE.md](GIT_GUIDE.md) if you're new to git.
+## Running it
+
+Needs Node 20+ and a running PostgreSQL.
+
+### One command (Windows)
+
+Double-click `run-demo.bat` (or run it from a terminal). It prepares the
+database, starts the API, web console and mobile app, and opens a separate
+browser window for the admin, a customer and a provider, each with its own
+signed-in session. One-time codes show up in a window called "MotIQ OTP
+codes". Double-click `stop-demo.bat` to stop everything.
+
+### Step by step
+
+```
+# API
+cd apps/api
+npm install
+copy .env.example .env        # then set DATABASE_URL and JWT_SECRET
+npx prisma migrate deploy
+npm run seed                  # demo admin, customers, providers and jobs
+npm run start:dev             # http://localhost:3001/api/v1
+
+# Web console (second terminal)
+cd apps/web
+npm install
+npm run dev                   # http://localhost:5173
+
+# Mobile app in a browser (third terminal)
+cd apps/mobile
+npm install
+npx expo start --web --port 8081   # http://localhost:8081
+```
+
+There is no SMS provider yet, so the one-time code is printed in the API
+terminal. Demo numbers: admin `99999 00000`, providers `98460 00001` and
+`98460 00002` (approved) and `98460 00003` (waiting for approval), customer
+`98450 00011`. Any new 10 digit number signs up as a customer or provider.
+
+Tests: `cd apps/api && npx jest`.
 
 ## Tech stack
 
-- **Backend:** NestJS, TypeScript, Prisma, PostgreSQL
-- **Mobile:** React Native (Expo), TypeScript
-- **Admin console:** Next.js, TypeScript, Tailwind CSS
-
-## Status
-
-🚧 In active development — see the [Issues](../../issues) tab and each
-module's branch for progress.
+- **API:** NestJS, TypeScript, Prisma, PostgreSQL, JWT, Jest
+- **Web console:** React, Vite, TypeScript
+- **Mobile app:** React Native (Expo), TypeScript
