@@ -71,6 +71,7 @@ export interface ProviderRow {
   createdAt: string;
   user: { phoneNumber: string; name: string | null };
   _count: { documents: number };
+  rating: { average: number | null; count: number };
 }
 
 export interface ProviderDetail {
@@ -82,6 +83,7 @@ export interface ProviderDetail {
   areaName: string | null;
   user: { phoneNumber: string; name: string | null };
   documents: { id: string; type: string; fileUrl: string; createdAt: string }[];
+  rating: { average: number | null; count: number };
 }
 
 export interface RequestRow {

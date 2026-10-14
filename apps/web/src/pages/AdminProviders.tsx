@@ -122,6 +122,7 @@ export default function AdminProviders() {
               <th>Contact</th>
               <th>Documents</th>
               <th>Status</th>
+              <th>Rating</th>
               <th>Online</th>
               <th>Applied</th>
               <th />
@@ -130,12 +131,12 @@ export default function AdminProviders() {
           <tbody>
             {data === null && (
               <tr>
-                <td colSpan={7} className="muted">Loading...</td>
+                <td colSpan={8} className="muted">Loading...</td>
               </tr>
             )}
             {data?.items.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted">No providers here.</td>
+                <td colSpan={8} className="muted">No providers here.</td>
               </tr>
             )}
             {data?.items.map((p) => (
@@ -149,6 +150,13 @@ export default function AdminProviders() {
                 <td>{p._count.documents}</td>
                 <td>
                   <Tag value={p.verification} />
+                </td>
+                <td>
+                  {p.rating.count === 0 ? (
+                    <span className="muted">none yet</span>
+                  ) : (
+                    `${p.rating.average} / 5 (${p.rating.count})`
+                  )}
                 </td>
                 <td>{p.online ? p.areaName ?? 'yes' : <span className="muted">no</span>}</td>
                 <td>{when(p.createdAt)}</td>
