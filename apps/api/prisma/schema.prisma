@@ -73,6 +73,7 @@ model ProviderProfile {
   documents    ProviderDocument[]
   requests     ServiceRequest[]
   offers       RequestOffer[]
+  payouts      Payout[]
 }
 
 model ProviderDocument {
@@ -183,7 +184,8 @@ model Payment {
   status           PaymentStatus   @default(pending)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
-
+  gatewayReference String?
+  payout           Payout?
   @@index([userId])
 }
 
@@ -197,4 +199,24 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+enum PayoutStatus {
+  pending
+  paid
+  cancelled
+}
+
+model Payout {
+  id         String       @id @default(uuid())
+  providerId String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id])
+  paymentId  String       @unique
+  payment    Payment     @relation(fields: [paymentId], references: [id])
+  amount     Int
+  status     PayoutStatus @default(pending)
+  createdAt  DateTime     @default(now())
+  paidAt     DateTime?
+
+  @@index([providerId])
 }
