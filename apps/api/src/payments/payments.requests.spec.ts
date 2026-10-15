@@ -1,6 +1,7 @@
 import { FareService } from './fare.service';
 import { PaymentsService } from './payments.service';
-
+import { FakeGatewayService } from './gateway/fake-gateway.service';
+import { PayoutsService } from './payouts.service';
 // Payments that come from a finished job: the bill, the split and earnings.
 function setup() {
   const prisma = {
@@ -10,7 +11,15 @@ function setup() {
     },
   };
   const fare = new FareService({ get: () => '15' } as any);
-  return { prisma, service: new PaymentsService(prisma as any, fare) };
+  const gateway = new FakeGatewayService();
+  const payoutsService = {
+  createForSuccessfulPayment: jest.fn().mockResolvedValue(null),
+  cancelForRefund: jest.fn().mockResolvedValue(null),
+};
+ return {
+  prisma,
+  service: new PaymentsService(prisma as any, fare, payoutsService as any, gateway),
+ };
 }
 
 describe('PaymentsService: bills for finished jobs', () => {

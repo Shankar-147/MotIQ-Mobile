@@ -6,7 +6,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ListPaymentsQuery } from './dto/list-payments.query';
 import { FareService } from './fare.service';
+import { PayoutsService } from './payouts.service';
+import { Inject } from '@nestjs/common';
 
+import {
+  PAYMENT_GATEWAY,
+  PaymentGateway,
+} from './gateway/payment-gateway';
 export type PaymentWithUser = Payment & { user: { phoneNumber: string; name: string | null } };
 
 @Injectable()
@@ -14,6 +20,9 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fare: FareService,
+    private readonly payoutsService: PayoutsService,
+    @Inject(PAYMENT_GATEWAY)
+    private readonly gateway: PaymentGateway,
   ) {}
 
   // Every payment starts as "pending". There is no payment gateway yet, so
@@ -58,27 +67,89 @@ export class PaymentsService {
     return payment;
   }
 
-  async confirm(user: AuthUser, id: string): Promise<Payment> {
-    const payment = await this.findOneFor(user, id);
-    if (payment.status === 'failed' || payment.status === 'refunded') {
-      throw new BadRequestException(`Cannot confirm a ${payment.status} payment`);
-    }
-    if (payment.status === 'succeeded') {
-      return payment; // confirming twice is harmless
-    }
-    return this.prisma.payment.update({ where: { id }, data: { status: 'succeeded' } });
+async confirm(user: AuthUser, id: string): Promise<Payment> {
+const payment = await this.prisma.payment.findUnique({
+where: { id },
+});
+
+if (!payment) {
+throw new NotFoundException('Payment not found');
+}
+
+// Prevent users from confirming payments they do not own.
+// Keep the authorization rule consistent with your existing service.
+if (payment.userId !== user.id && user.role !== 'admin') {
+throw new ForbiddenException('You cannot confirm this payment');
+}
+if (payment.status === 'refunded') {
+  throw new BadRequestException(
+    'A refunded payment cannot be confirmed',
+  );
+}
+
+// Do not charge the gateway again for a successful payment.
+if (payment.status === 'succeeded') {
+return payment;
+}
+
+
+const result = await this.gateway.charge({
+paymentId: payment.id,
+amount: payment.amount,
+currency: payment.currency,
+});
+
+if (result.ok) {
+  const updatedPayment = await this.prisma.payment.update({
+    where: { id: payment.id },
+    data: {
+      status: 'succeeded',
+      gatewayReference: result.reference,
+    },
+  });
+
+  // Create a payout for the provider.
+  // The service skips payments without a request
+  // and prevents duplicate payouts.
+  await this.payoutsService.createForSuccessfulPayment(payment.id);
+
+  return updatedPayment;
+}
+
+return this.prisma.payment.update({
+where: { id: payment.id },
+data: {
+status: 'failed',
+},
+});
+}
+
+
+async refund(id: string): Promise<Payment> {
+  const payment = await this.prisma.payment.findUnique({
+    where: { id },
+  });
+
+  if (!payment) {
+    throw new NotFoundException(`Payment ${id} not found`);
   }
 
-  async refund(id: string): Promise<Payment> {
-    const payment = await this.prisma.payment.findUnique({ where: { id } });
-    if (!payment) {
-      throw new NotFoundException(`Payment ${id} not found`);
-    }
-    if (payment.status !== 'succeeded') {
-      throw new BadRequestException('Only succeeded payments can be refunded');
-    }
-    return this.prisma.payment.update({ where: { id }, data: { status: 'refunded' } });
+  if (payment.status !== 'succeeded') {
+    throw new BadRequestException(
+      'Only succeeded payments can be refunded',
+    );
   }
+
+  // Cancel the payout if it is pending.
+  // If it has already been paid, this throws BadRequestException.
+  await this.payoutsService.cancelForRefund(payment.id);
+
+  // Mark the payment as refunded.
+  return this.prisma.payment.update({
+    where: { id },
+    data: { status: 'refunded' },
+  });
+}
 
   // What a provider has earned. "Paid" is money the customer has paid;
   // "waiting" is for completed jobs the customer has not paid for yet.

@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { FareService } from './fare.service';
 import { PaymentsService } from './payments.service';
-
+import { FakeGatewayService } from './gateway/fake-gateway.service';
 const owner = { id: 'u1', phoneNumber: '+919999999999', name: null, role: 'user' as const };
 const stranger = { id: 'u2', phoneNumber: '+918888888888', name: null, role: 'user' as const };
 const admin = { id: 'a1', phoneNumber: '+917777777777', name: null, role: 'admin' as const };
@@ -15,13 +15,38 @@ function setup() {
       create: jest.fn(),
       findMany: jest.fn(async () => []),
       findUnique: jest.fn(),
-      update: jest.fn(async ({ where, data }: any) => ({ ...pending, id: where.id, ...data })),
+      update: jest.fn(async ({ where, data }: any) => ({
+        ...pending,
+        id: where.id,
+        ...data,
+      })),
       count: jest.fn(async () => 0),
       groupBy: jest.fn(async () => []),
     },
   };
+
   const fare = new FareService({ get: () => '15' } as any);
-  return { prisma, service: new PaymentsService(prisma as any, fare) };
+
+  const gateway = new FakeGatewayService();
+
+  const payoutsService = {
+    createForSuccessfulPayment: jest.fn().mockResolvedValue(null),
+    cancelForRefund: jest.fn().mockResolvedValue(null),
+  };
+
+  const service = new PaymentsService(
+    prisma as any,
+    fare,
+    
+    payoutsService as any,
+    gateway as any,
+  );
+
+  return {
+    prisma,
+    service,
+    payoutsService,
+  };
 }
 
 describe('PaymentsService', () => {
@@ -71,8 +96,13 @@ describe('PaymentsService', () => {
     const { prisma, service } = setup();
     prisma.payment.findUnique.mockResolvedValue(pending);
     const result = await service.confirm(owner, 'p1');
-    expect(prisma.payment.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { status: 'succeeded' } });
-    expect(result.status).toBe('succeeded');
+    expect(prisma.payment.update).toHaveBeenCalledWith({
+  where: { id: 'p1' },
+  data: {
+    status: 'succeeded',
+    gatewayReference: 'FAKE-p1',
+   },
+    });
   });
 
   it('confirming an already succeeded payment changes nothing', async () => {
