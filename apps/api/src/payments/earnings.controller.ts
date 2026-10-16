@@ -6,7 +6,7 @@ import { ProviderGuard } from '../auth/provider.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
 
-// A provider looking at their own money.
+
 @Controller('providers/me/earnings')
 @UseGuards(JwtAuthGuard, ProviderGuard)
 export class EarningsController {
