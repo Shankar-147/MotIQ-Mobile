@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IssueType } from '@prisma/client';
 
-// All money is in paise (1 rupee = 100 paise), so there are no decimals.
+
 export const BASE_FARE: Record<IssueType, number> = {
-  flat_tyre: 25000, // 250.00
+  flat_tyre: 25000, 
   battery: 30000,
   fuel: 20000,
   towing: 80000,
@@ -12,7 +12,7 @@ export const BASE_FARE: Record<IssueType, number> = {
   other: 35000,
 };
 
-export const PER_KM_CHARGE = 1000; // 10.00 for every km the provider travels
+export const PER_KM_CHARGE = 1000;
 
 export interface FareBreakdown {
   baseFare: number;
